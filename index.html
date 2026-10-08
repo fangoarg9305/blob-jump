@@ -102,6 +102,37 @@ if(API)fetch(API+'/score',{method:'POST',headers:{'Content-Type':'application/js
 function loadRank(){let t=[];try{t=JSON.parse(localStorage.getItem('bj_top')||'[]')}catch(e){}rank=t.map(v=>({name:'Tú',score:v}));
 if(API)fetch(API+'/top').then(r=>r.json()).then(j=>{rank=j}).catch(()=>{})}
 function openRank(){prev=st;loadRank();st='rank'}
+function openShop(){prev=st;st='shop'}
+function openMissions(){prev=st;st='missions'}
+function buyItem(itemId){
+    let item = shopItems.find(i => i.id === itemId);
+    if(!item) return;
+    
+    // Check if player has enough coins
+    if(bank >= item.price){
+        // Deduct coins
+        bank -= item.price;
+        ls.set('bj_coins', bank);
+        
+        // Mark item as owned
+        playerInventory[itemId] = true;
+        saveInventory();
+        
+        // Apply item effects
+        applyItemEffect(itemId);
+    }
+}
+function applyItemEffect(itemId){
+    // Apply effects based on item ID
+    if(itemId === 3){ // Escudo Extra
+        // Give an extra shield for this game
+        boost = true;
+    } else if(itemId === 4){ // Monedas Dobles (1 partida)
+        // This would need to be handled in the coin collection logic
+        // For now, we'll just note it's owned and handle it elsewhere
+    }
+    // Skins are purely cosmetic, no gameplay effect
+}
 function ad(cb){adBusy=true;const f=ok=>{adBusy=false;cb(ok)};
 const uid=tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user?String(tg.initDataUnsafe.user.id):'';
 const mt=()=>{const fn=window['show_'+MONETAG_ZONE];if(!MONETAG_ZONE||!fn)return f(false);try{fn('pop').then(()=>f(true)).catch(()=>f(false))}catch(e){f(false)}};
@@ -192,7 +223,15 @@ if(P.vy>0)for(const p of pl){if(!p.dead&&oy+14<=p.y+3&&P.y+14>=p.y&&P.x>p.x-6&&P
 P.vy=held?-900:-720;P.sq=.18;if(p.k==2&&!p.br)p.br=.25;burst(P.x,p.y,held?9:5,'#fff');hap('light');snd(held?560:400,.09,'triangle');break}}
 for(const p of pl)if(p.s!=null&&!p.dead){const sx=p.x+p.s+2,ex=sx+12,cx=Math.max(sx,Math.min(P.x,ex)),cy=Math.max(p.y-11,Math.min(P.y,p.y)),dx=P.x-cx,dy=P.y-cy;if(dx*dx+dy*dy<121&&inv<=0){if(shield){shield=false;inv=1;snd(200,.2,'square',.07);hap('heavy');burst(P.x,P.y,14,'#8fd3ff');shieldUsed=true}else return die()}}
 comboT-=dt;if(comboT<=0)combo=0;
-for(let i=co.length-1;i>=0;i--){const c=co[i];if(Math.hypot(P.x-c.x,P.y-c.y)<22){co.splice(i,1);coins++;bank++;combo=Math.min(combo+1,8);comboT=1;snd(520+combo*70,.12,'sine',.07);burst(c.x,c.y,6,'#ffd23f')}}
+for(let i=co.length-1;i>=0;i--){const c=co[i];if(Math.hypot(P.x-c.x,P.y-c.y)<22){
+    co.splice(i,1);
+    const coinsEarned = playerInventory[4] ? 2 : 1; // Double coins if item ID 4 is owned
+    coins += coinsEarned;
+    bank += coinsEarned;
+    combo=Math.min(combo+1,8);comboT=1;
+    snd(520+combo*70,.12,'sine',.07);
+    burst(c.x,c.y,6,'#ffd23f');
+}}
 const tgt=P.y-H*.45;if(tgt<cam)cam+=(tgt-cam)*Math.min(1,dt*12);
 score=Math.max(score,Math.floor((586-P.y)/10));
 while(top>cam-300)gen();
@@ -251,11 +290,7 @@ if(st=='shop'){
         g.textAlign='left';
         tx(item.name+': '+item.price+' monedas',W/2-140,y+25,16,'#000');
         if(!owned){
-            g.fillStyle='#ffd23f';
-            g.fillRect(W/2+50,y+5,80,30);
-            g.fillStyle='#000';
-            g.textAlign='center';
-            tx('Comprar',W/2+90,y+20,16,'#000');
+            btn('Comprar',W/2+50,y+5,80,30,()=>{buyItem(item.id)},'#ffd23f');
         }
         y+=50;
     }
@@ -300,6 +335,7 @@ for(const p of pt){p.vy+=600*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.l-=dt}pt=pt.filter(p
 draw();requestAnimationFrame(loop)}
 function down(x,y){if(adBusy)return;if(x!=null)for(const b of btns)if(x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h){b.fn();return}
 if(st=='rank'){st=prev;return}
+if(st=='shop'||st=='missions'){st=prev;return}
 if(st=='ready'||(st=='dead'&&performance.now()-dieT>300)){reset();st='play';held=true;snd(440,.08,'triangle');return}
 if(st=='play'){held=true;P.dir*=-1;snd(300,.04,'square',.03)}}
 function up(){held=false}
