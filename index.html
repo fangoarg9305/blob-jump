@@ -48,7 +48,7 @@ if(API)fetch(API+'/top').then(r=>r.json()).then(j=>{rank=j}).catch(()=>{})}
 function openRank(){prev=st;loadRank();st='rank'}
 function ad(cb){adBusy=true;const f=ok=>{adBusy=false;cb(ok)};
 const uid=tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user?String(tg.initDataUnsafe.user.id):'';
-const mt=()=>{const fn=window['show_'+MONETAG_ZONE];if(!MONETAG_ZONE||!fn)return f(false);try{fn({ymid:uid}).then(()=>f(true)).catch(()=>f(false))}catch(e){f(false)}};
+const mt=()=>{const fn=window['show_'+MONETAG_ZONE];if(!MONETAG_ZONE||!fn)return f(false);try{fn('pop').then(()=>f(true)).catch(()=>f(false))}catch(e){f(false)}};
 if(ADSGRAM_BLOCK&&window.Adsgram){try{Adsgram.init({blockId:ADSGRAM_BLOCK}).show().then(r=>f(!!(r&&r.done))).catch(r=>r&&r.error?mt():f(false))}catch(e){mt()}}
 else if(MONETAG_ZONE)mt();else setTimeout(()=>f(true),2500)}
 function revive(){if(revives>=2)return;ad(ok=>{if(!ok)return;let b=null;const m=cam+H*.55;
