@@ -23,15 +23,75 @@ addEventListener('resize',fit);fit();
 const tg=window.Telegram&&Telegram.WebApp;if(tg){try{tg.ready();tg.expand();tg.disableVerticalSwipes&&tg.disableVerticalSwipes();tg.setHeaderColor&&tg.setHeaderColor("#0b1020")}catch(e){}}
 const ls={get(k){try{return+localStorage.getItem(k)||0}catch(e){return 0}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
 let best=ls.get('bj_best'),bank=ls.get('bj_coins'),newBest=false;
+// Cargar tienda y misiones desde localStorage
+let shopItems = JSON.parse(localStorage.getItem('bj_shop_items')||'[]');
+let playerInventory = JSON.parse(localStorage.getItem('bj_inventory')||'{}');
+let dailyMission = JSON.parse(localStorage.getItem('bj_daily_mission')||'{}');
+let lastDailyReset = +localStorage.getItem('bj_last_daily')||0;
 let ac;
 function snd(f,d,t,v){try{ac=ac||new(window.AudioContext||webkitAudioContext)();const o=ac.createOscillator(),a=ac.createGain();o.type=t||'sine';o.frequency.value=f;a.gain.setValueAtTime(v||.06,ac.currentTime);a.gain.exponentialRampToValueAtTime(.0001,ac.currentTime+d);o.connect(a);a.connect(ac.destination);o.start();o.stop(ac.currentTime+d)}catch(e){}}
 function hap(k){try{tg?tg.HapticFeedback.impactOccurred(k):navigator.vibrate&&navigator.vibrate(k=='heavy'?40:8)}catch(e){}}
 let seed=1;
 function rnd(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}
 const R=(a,b)=>a+rnd()*(b-a);
-let st='ready',P,pl,co,pt=[],cam,top,score,coins,shake=0,dieT=0,combo,comboT,held=false,T=0,revives=0,boost=false,inv=0,shield=false,prev='ready',rank=[],btns=[],adBusy=false,lastSub=null;
+let st='ready',P,pl,co,pt=[],cam,top,score,coins,shake=0,dieT=0,combo,comboT,held=false,T=0,revives=0,boost=false,inv=0,shield=false,shieldUsed=false,prev='ready',rank=[],btns=[],adBusy=false,lastSub=null;
+// Tienda y misiones
+let shopItems = []; // [{id:int, name:string, price:int, owned:bool}]
+let playerInventory = {}; // {itemId: true}
+let dailyMission = {}; // {id:string, description:string, target:int, progress:int, reward:int}
+let lastDailyReset = 0; // timestamp of last mission reset
 const API='https://blobjump-api.zyzybots.workers.dev',ADSGRAM_BLOCK='52792',MONETAG_ZONE='11979223';
-function reset(){seed=Date.now()&0xffffff;pl=[{x:W/2-55,y:600,w:110,k:0,s:null,br:0,dead:false}];co=[];pt=[];score=0;coins=0;shake=0;combo=0;comboT=0;top=600;revives=0;inv=0;shield=boost;boost=false;lastSub=null;
+// Inicializar tienda y misiones con valores predeterminados si no existen
+function initShop(){
+    if(shopItems.length===0){
+        shopItems = [
+            {id:1, name:'Skin Verde', price:50, owned:false},
+            {id:2, name:'Skin Azul', price:75, owned:false},
+            {id:3, name:'Escudo Extra', price:100, owned:false}, // da un escudo adicional al iniciar
+            {id:4, name:'Monedas Dobles (1 partida)', price:200, owned:false} // consumible
+        ];
+        saveShop();
+    }
+}
+function initMissions(){
+    if(Object.keys(dailyMission).length===0 || dailyMission.completed){
+        // Generar misión diaria aleatoria
+        const missions = [
+            {id:'dist_500', description:'Llega a 500 m', target:500, reward:25},
+            {id:'coins_20', description:'Recoge 20 monedas', target:20, reward:30},
+            {id:'revive_1', description:'Usa el revive una vez', target:1, reward:40},
+            {id:'no_shield', description:'Llega a 300 m sin usar escudo', target:300, reward:35},
+            {id:'combo_5', description:'Achieve combo 5', target:5, reward:30}
+        ];
+        const selected = missions[Math.floor(Math.random()*missions.length)];
+        dailyMission = {
+            id: selected.id,
+            description: selected.description,
+            target: selected.target,
+            progress: 0,
+            reward: selected.reward,
+            completed: false
+        };
+        saveMission();
+    }
+}
+function saveShop(){localStorage.setItem('bj_shop_items', JSON.stringify(shopItems));}
+function saveInventory(){localStorage.setItem('bj_inventory', JSON.stringify(playerInventory));}
+function saveMission(){localStorage.setItem('bj_daily_mission', JSON.stringify(dailyMission));}
+function saveLastDaily(){localStorage.setItem('bj_last_daily', String(lastDailyReset));}
+function checkNewDay(){
+    const today = Math.floor(Date.now() / 86400000);
+    if(lastDailyReset !== today){
+        lastDailyReset = today;
+        dailyMission = {};
+        saveLastDaily();
+        saveMission();
+    }
+}
+initShop();
+checkNewDay();
+initMissions();
+function reset(){seed=Date.now()&0xffffff;pl=[{x:W/2-55,y:600,w:110,k:0,s:null,br:0,dead:false}];co=[];pt=[];score=0;coins=0;shake=0;combo=0;comboT=0;top=600;revives=0;inv=0;shield=boost;boost=false;shieldUsed=false;lastSub=null;
 P={x:W/2,y:586,vx:0,vy:-720,dir:1,sq:0};cam=P.y-H*.7;while(top>cam-300)gen()}
 function gen(){const d=Math.min(1,(600-top)/7000),w=R(88-d*30,106-d*34);top-=R(88,112+d*42);let k=0;const r=rnd();
 if(r<.14+d*.18)k=1;else if(r<.32+d*.2)k=2;
@@ -51,8 +111,76 @@ const uid=tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user?String(tg.initDataUnsafe
 const mt=()=>{const fn=window['show_'+MONETAG_ZONE];if(!MONETAG_ZONE||!fn)return f(false);try{fn('pop').then(()=>f(true)).catch(()=>f(false))}catch(e){f(false)}};
 if(ADSGRAM_BLOCK&&window.Adsgram){try{Adsgram.init({blockId:ADSGRAM_BLOCK}).show().then(r=>f(!!(r&&r.done))).catch(r=>r&&r.error?mt():f(false))}catch(e){mt()}}
 else if(MONETAG_ZONE)mt();else setTimeout(()=>f(true),2500)}
+function updateMissionProgress(){
+    // Actualizar progreso de la misión según el estado actual del juego
+    if(st==='play'){
+        // Misión de distancia: actualizar progreso basada en la puntuación (asumiendo que puntuación es distancia en metros)
+        if(dailyMission.id==='dist_500'){
+            dailyMission.progress = Math.min(dailyMission.target, score);
+            saveMission();
+            if(!dailyMission.completed && dailyMission.progress >= dailyMission.target){
+                dailyMission.completed = true;
+                saveMission();
+                bank += dailyMission.reward;
+                ls.set('bj_coins', bank);
+            }
+        }
+        // Misión de monedas: actualizar progreso basada en las monedas recogidas en esta partida
+        // Nota: necesitamos saber cuántas monedas se han recogido en esta partida, no el total
+        // Por ahora, usaremos una variable temporal o asumimos que las monedas en 'coins' son de esta partida
+        // Pero 'coins' se reinicia en reset, así que sí representa monedas de la partida actual
+        if(dailyMission.id==='coins_20'){
+            dailyMission.progress = Math.min(dailyMission.target, coins);
+            saveMission();
+            if(!dailyMission.completed && dailyMission.progress >= dailyMission.target){
+                dailyMission.completed = true;
+                saveMission();
+                bank += dailyMission.reward;
+                ls.set('bj_coins', bank);
+            }
+        }
+        if(dailyMission.id==='no_shield'){
+            dailyMission.progress = shieldUsed ? 0 : dailyMission.target;
+            saveMission();
+            if(!dailyMission.completed && dailyMission.progress >= dailyMission.target){
+                dailyMission.completed = true;
+                saveMission();
+                bank += dailyMission.reward;
+                ls.set('bj_coins', bank);
+            }
+        }
+        // Misión de revive: actualizar cuando se use el revive
+        // Esto se hará en la función revive
+        // Misión de no usar escudo: necesitamos saber si se ha usado el escudo en esta partida
+        // Vamos a agregar una variable shieldUsed y actualizarla cuando se use el escudo
+        // Para simplificar, asumiremos que si el escudo está activo (shield=true o inv>0) entonces se ha usado
+        // Pero es mejor tener una variable específica
+        // Por ahora, dejaremos esta misión para implementar más tarde o usar un enfoque diferente
+        // Misión de combo: actualizar basada en el combo actual
+        if(dailyMission.id==='combo_5'){
+            dailyMission.progress = Math.min(dailyMission.target, combo);
+            saveMission();
+            if(!dailyMission.completed && dailyMission.progress >= dailyMission.target){
+                dailyMission.completed = true;
+                saveMission();
+                bank += dailyMission.reward;
+                ls.set('bj_coins', bank);
+            }
+        }
+    }
+}
 function revive(){if(revives>=2)return;ad(ok=>{if(!ok)return;let b=null;const m=cam+H*.55;
 for(const p of pl)if(!p.dead&&(!b||Math.abs(p.y-m)<Math.abs(b.y-m)))b=p;if(!b)return;
+if(dailyMission.id==='revive_1'){
+    dailyMission.progress = Math.min(dailyMission.target, dailyMission.progress + 1);
+    saveMission();
+    if(!dailyMission.completed && dailyMission.progress >= dailyMission.target){
+        dailyMission.completed = true;
+        saveMission();
+        bank += dailyMission.reward;
+        ls.set('bj_coins', bank);
+    }
+}
 revives++;b.s=null;if(b.k==2)b.k=0;P.x=b.x+b.w/2;P.y=b.y-14;P.vy=-720;inv=2;st='play';held=false;snd(660,.15,'triangle')})}
 function btn(l,x,y,w,h,fn,c){btns.push({x,y,w,h,fn});g.fillStyle=c;g.beginPath();g.roundRect(x,y,w,h,12);g.fill();tx(l,x+w/2,y+h/2+6,16,'#fff',700)}
 function die(){st='dead';dieT=performance.now();shake=.35;bank=Math.max(bank,0);ls.set('bj_coins',bank);submit(score);
@@ -66,7 +194,7 @@ if(P.x<14){P.x=14;P.dir=1}else if(P.x>W-14){P.x=W-14;P.dir=-1}
 const oy=P.y;P.vy+=1500*dt;P.y+=P.vy*dt;P.sq=Math.max(0,P.sq-dt);
 if(P.vy>0)for(const p of pl){if(!p.dead&&oy+14<=p.y+3&&P.y+14>=p.y&&P.x>p.x-6&&P.x<p.x+p.w+6){
 P.vy=held?-900:-720;P.sq=.18;if(p.k==2&&!p.br)p.br=.25;burst(P.x,p.y,held?9:5,'#fff');hap('light');snd(held?560:400,.09,'triangle');break}}
-for(const p of pl)if(p.s!=null&&!p.dead){const sx=p.x+p.s+2,ex=sx+12,cx=Math.max(sx,Math.min(P.x,ex)),cy=Math.max(p.y-11,Math.min(P.y,p.y)),dx=P.x-cx,dy=P.y-cy;if(dx*dx+dy*dy<121&&inv<=0){if(shield){shield=false;inv=1;snd(200,.2,'square',.07);hap('heavy');burst(P.x,P.y,14,'#8fd3ff')}else return die()}}
+for(const p of pl)if(p.s!=null&&!p.dead){const sx=p.x+p.s+2,ex=sx+12,cx=Math.max(sx,Math.min(P.x,ex)),cy=Math.max(p.y-11,Math.min(P.y,p.y)),dx=P.x-cx,dy=P.y-cy;if(dx*dx+dy*dy<121&&inv<=0){if(shield){shield=false;inv=1;snd(200,.2,'square',.07);hap('heavy');burst(P.x,P.y,14,'#8fd3ff');shieldUsed=true}else return die()}}
 comboT-=dt;if(comboT<=0)combo=0;
 for(let i=co.length-1;i>=0;i--){const c=co[i];if(Math.hypot(P.x-c.x,P.y-c.y)<22){co.splice(i,1);coins++;bank++;combo=Math.min(combo+1,8);comboT=1;snd(520+combo*70,.12,'sine',.07);burst(c.x,c.y,6,'#ffd23f')}}
 const tgt=P.y-H*.45;if(tgt<cam)cam+=(tgt-cam)*Math.min(1,dt*12);
@@ -97,6 +225,8 @@ if(st=='ready'){tx('BLOB JUMP',W/2,150,46,'#fff',800);tx('Toca para jugar',W/2,2
 tx('Toca: cambia de dirección',W/2,260,16,'#fff',500);tx('Mantén: rebote más alto',W/2,284,16,'#fff',500);tx('Evita los pinchos rojos',W/2,308,16,'#ff8a99',500);
 btn(boost?'Escudo listo':'Escudo inicial (ver anuncio)',W/2-120,340,240,44,()=>{if(!boost)ad(ok=>{if(ok)boost=true})},boost?'#2d8f6a':'#3a4a82');
 btn('Ranking',W/2-60,396,120,40,openRank,'#3a4a82');
+btn('Tienda',W/2-60,430,120,40,openShop,'#3a4a82');
+btn('Misiones',W/2+60,430,120,40,openMissions,'#3a4a82');
 if(best)tx('Récord '+best+' m',W/2,470,16,'#bcd',600)}
 if(st=='dead'){g.fillStyle='rgba(8,12,24,.62)';g.fillRect(0,0,W,H);
 tx('Llegaste a',W/2,170,20,'#cde',500);tx(score+' m',W/2,232,64,'#fff',800);
@@ -104,15 +234,72 @@ tx(newBest?'¡Nuevo récord!':'Récord '+best+' m',W/2,274,20,newBest?'#6df0b0':
 tx('+'+coins+' monedas · total '+bank,W/2,308,17,'#ffd23f',600);
 if(revives<2)btn('Revivir (ver anuncio) · quedan '+(2-revives),W/2-120,340,240,46,revive,'#d9534f');
 btn('Ranking',W/2-60,398,120,40,openRank,'#3a4a82');
+btn('Tienda',W/2-60,430,120,40,openShop,'#3a4a82');
+btn('Misiones',W/2+60,430,120,40,openMissions,'#3a4a82');
 if(performance.now()-dieT>300)tx('Toca para reintentar',W/2,490,24,'#fff',700)}
 if(st=='rank'){g.fillStyle='rgba(8,12,24,.84)';g.fillRect(0,0,W,H);tx('Ranking',W/2,80,32,'#fff',800);
 if(!rank.length)tx('Aún no hay puntajes',W/2,160,18,'#bcd',500);
 rank.slice(0,10).forEach((r,i)=>{const y=130+i*38;tx((i+1)+'',34,y,18,i<3?'#ffd23f':'#bcd',700,'left');tx(String(r.name).slice(0,16),70,y,18,'#fff',600,'left');tx(r.score+' m',W-34,y,18,'#6df0b0',700,'right')});
 tx('Toca para cerrar',W/2,H-40,16,'#bcd',500)}
+if(st=='shop'){
+    g.fillStyle='rgba(8,12,24,.9)';g.fillRect(0,0,W,H);
+    g.fillStyle='#fff';g.textAlign='center';
+    tx('TIENDA',W/2,80,30,'#fff',800);
+    let y=150;
+    for(let i=0;i<shopItems.length;i++){
+        let item=shopItems[i];
+        let owned=playerInventory[item.id]||false;
+        g.fillStyle=owned?'#6df0b0':'#ffd23f';
+        g.fillRect(W/2-150,y,300,40);
+        g.fillStyle='#000';
+        g.textAlign='left';
+        tx(item.name+': '+item.price+' monedas',W/2-140,y+25,16,'#000');
+        if(!owned){
+            g.fillStyle='#ffd23f';
+            g.fillRect(W/2+50,y+5,80,30);
+            g.fillStyle='#000';
+            g.textAlign='center';
+            tx('Comprar',W/2+90,y+20,16,'#000');
+        }
+        y+=50;
+    }
+    g.fillStyle='#3a4a82';
+    g.fillRect(W/2-60,H-80,120,40);
+    g.fillStyle='#fff';
+    g.textAlign='center';
+    tx('Volver',W/2,H-60,16,'#fff',400);
+}else if(st=='missions'){
+    g.fillStyle='rgba(8,12,24,.9)';g.fillRect(0,0,W,H);
+    g.fillStyle='#fff';g.textAlign='center';
+    tx('MISIONES DIARIAS',W/2,80,30,'#fff',800);
+    if(Object.keys(dailyMission).length===0){
+        tx('Cargando misión...',W/2,200,20,'#fff',600);
+    }else{
+        g.fillStyle='#6df0b0';g.fillRect(W/2-200,150,400,60);
+        g.fillStyle='#000';
+        g.textAlign='center';
+        tx(dailyMission.description,W/2,180,20,'#000');
+        tx('Progreso: '+dailyMission.progress+' / '+dailyMission.target,W/2,210,20,'#000');
+        tx('Recompensa: '+dailyMission.reward+' monedas',W/2,240,20,'#000');
+        if(dailyMission.completed){
+            g.fillStyle='#6df0b0';
+            g.fillRect(W/2-100,280,200,40);
+            g.fillStyle='#fff';
+            g.textAlign='center';
+            tx('Misión completada!',W/2,300,20,'#fff');
+        }
+    }
+    g.fillStyle='#3a4a82';
+    g.fillRect(W/2-60,H-80,120,40);
+    g.fillStyle='#fff';
+    g.textAlign='center';
+    tx('Volver',W/2,H-60,16,'#fff',400);
+}
 if(adBusy){g.fillStyle='rgba(8,12,24,.88)';g.fillRect(0,0,W,H);tx((ADSGRAM_BLOCK||MONETAG_ZONE)?'Cargando anuncio…':'Anuncio de prueba…',W/2,H/2,22,'#fff',700)}}
 let last=0;
 function loop(ts){const dt=Math.min(.033,(ts-last)/1000||0);last=ts;T+=dt;
-if(st=='play')upd(dt);if(shake>0)shake-=dt;
+if(st=='play'){upd(dt);updateMissionProgress();}
+if(shake>0)shake-=dt;
 for(const p of pt){p.vy+=600*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.l-=dt}pt=pt.filter(p=>p.l>0);
 draw();requestAnimationFrame(loop)}
 function down(x,y){if(adBusy)return;if(x!=null)for(const b of btns)if(x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h){b.fn();return}
