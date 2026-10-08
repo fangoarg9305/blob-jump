@@ -36,10 +36,6 @@ function rnd(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|s
 const R=(a,b)=>a+rnd()*(b-a);
 let st='ready',P,pl,co,pt=[],cam,top,score,coins,shake=0,dieT=0,combo,comboT,held=false,T=0,revives=0,boost=false,inv=0,shield=false,shieldUsed=false,prev='ready',rank=[],btns=[],adBusy=false,lastSub=null;
 // Tienda y misiones
-let shopItems = []; // [{id:int, name:string, price:int, owned:bool}]
-let playerInventory = {}; // {itemId: true}
-let dailyMission = {}; // {id:string, description:string, target:int, progress:int, reward:int}
-let lastDailyReset = 0; // timestamp of last mission reset
 const API='https://blobjump-api.zyzybots.workers.dev',ADSGRAM_BLOCK='52792',MONETAG_ZONE='11979223';
 // Inicializar tienda y misiones con valores predeterminados si no existen
 function initShop(){
