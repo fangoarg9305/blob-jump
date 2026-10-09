@@ -134,10 +134,9 @@ function applyItemEffect(itemId){
     // Skins are purely cosmetic, no gameplay effect
 }
 function ad(cb){adBusy=true;const f=ok=>{adBusy=false;cb(ok)};
-const uid=tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user?String(tg.initDataUnsafe.user.id):'';
-const mt=()=>{const fn=window['show_'+MONETAG_ZONE];if(!MONETAG_ZONE||!fn)return f(false);try{fn('pop').then(()=>f(true)).catch(()=>f(false))}catch(e){f(false)}};
-if(ADSGRAM_BLOCK&&window.Adsgram){try{Adsgram.init({blockId:ADSGRAM_BLOCK}).show().then(r=>f(!!(r&&r.done))).catch(r=>r&&r.error?mt():f(false))}catch(e){mt()}}
-else if(MONETAG_ZONE)mt();else setTimeout(()=>f(true),2500)}
+if(ADSGRAM_BLOCK&&window.Adsgram){try{Adsgram.init({blockId:ADSGRAM_BLOCK}).show().then(r=>f(!!(r&&r.done))).catch(e=>f(false))}catch(e){f(false)}}
+else{f(false);}
+}
 function updateMissionProgress(){
     // Actualizar progreso de la misión según el estado actual del juego
     if(st==='play'){
@@ -256,22 +255,26 @@ if(st=='ready')P.y=586-Math.abs(Math.sin(T*3.2))*70;
 if(st!='dead')blob();
 g.restore();cam=cs;
 if(st=='play'){tx(score+' m',16,44,34,'#fff',800,'left');tx(coins+' ●',W-16,42,22,'#ffd23f',700,'right');if(combo>1)tx('x'+combo,W-16,68,16,'#fff',700,'right')}
-if(st=='ready'){tx('BLOB JUMP',W/2,150,46,'#fff',800);tx('Toca para jugar',W/2,200,22,'#ffd23f');
-tx('Toca: cambia de dirección',W/2,260,16,'#fff',500);tx('Mantén: rebote más alto',W/2,284,16,'#fff',500);tx('Evita los pinchos rojos',W/2,308,16,'#ff8a99',500);
-btn(boost?'Escudo listo':'Escudo inicial (ver anuncio)',W/2-120,340,240,44,()=>{if(!boost)ad(ok=>{if(ok)boost=true})},boost?'#2d8f6a':'#3a4a82');
-btn('Ranking',W/2-60,396,120,40,openRank,'#3a4a82');
-btn('Tienda',W/2-60,430,120,40,openShop,'#3a4a82');
-btn('Misiones',W/2+60,430,120,40,openMissions,'#3a4a82');
-if(best)tx('Récord '+best+' m',W/2,470,16,'#bcd',600)}
+if(st=='ready'){tx('BLOB JUMP',W/2,100,50,'#fff',800);
+tx('Toca: cambia de dirección',W/2,160,16,'#fff',400);
+tx('Mantén: rebote más alto',W/2,190,16,'#fff',400);
+tx('Evita los pinchos rojos',W/2,220,16,'#ff8a99',400);
+btn('JUGAR',W/2-100,260,200,50,()=>{reset();st='play';held=true;snd(440,.08,'triangle');},'#2d8f6a');
+btn('Ranking',W/2-100,320,200,40,openRank,'#3a4a82');
+btn('Tienda',W/2-100,370,200,40,openShop,'#3a4a82');
+btn('Misiones',W/2+100,320,200,40,openMissions,'#3a4a82');
+btn('Escudo inicial (ver anuncio)',W/2+100,370,200,40,()=>{if(!boost)ad(ok=>{if(ok)boost=true})},boost?'#6df0b0':'#3a4a82');
+if(best)tx('Récord '+best+' m',W/2,420,16,'#bcd',600);}
 if(st=='dead'){g.fillStyle='rgba(8,12,24,.62)';g.fillRect(0,0,W,H);
 tx('Llegaste a',W/2,170,20,'#cde',500);tx(score+' m',W/2,232,64,'#fff',800);
 tx(newBest?'¡Nuevo récord!':'Récord '+best+' m',W/2,274,20,newBest?'#6df0b0':'#bcd',700);
 tx('+'+coins+' monedas · total '+bank,W/2,308,17,'#ffd23f',600);
-if(revives<2)btn('Revivir (ver anuncio) · quedan '+(2-revives),W/2-120,340,240,46,revive,'#d9534f');
-btn('Ranking',W/2-60,398,120,40,openRank,'#3a4a82');
-btn('Tienda',W/2-60,430,120,40,openShop,'#3a4a82');
-btn('Misiones',W/2+60,430,120,40,openMissions,'#3a4a82');
-if(performance.now()-dieT>300)tx('Toca para reintentar',W/2,490,24,'#fff',700)}
+if(revives<2)btn('Revivir (ver anuncio) · quedan '+(2-revives),W/2-100,320,200,40,revive,'#d9534f');
+btn('Ranking',W/2-100,370,200,40,openRank,'#3a4a82');
+btn('Tienda',W/2-100,420,200,40,openShop,'#3a4a82');
+btn('Misiones',W/2+100,320,200,40,openMissions,'#3a4a82');
+btn('Escudo inicial (ver anuncio)',W/2+100,370,200,40,()=>{if(!boost)ad(ok=>{if(ok)boost=true})},boost?'#6df0b0':'#3a4a82');
+if(performance.now()-dieT>300)btn('REINTENTAR',W/2+100,420,200,40,()=>{reset();st='play';held=true;snd(440,.08,'triangle');},'#2d8f6a')}
 if(st=='rank'){g.fillStyle='rgba(8,12,24,.84)';g.fillRect(0,0,W,H);tx('Ranking',W/2,80,32,'#fff',800);
 if(!rank.length)tx('Aún no hay puntajes',W/2,160,18,'#bcd',500);
 rank.slice(0,10).forEach((r,i)=>{const y=130+i*38;tx((i+1)+'',34,y,18,i<3?'#ffd23f':'#bcd',700,'left');tx(String(r.name).slice(0,16),70,y,18,'#fff',600,'left');tx(r.score+' m',W-34,y,18,'#6df0b0',700,'right')});
