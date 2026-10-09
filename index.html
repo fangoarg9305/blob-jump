@@ -29,7 +29,7 @@ let seed=1;
 function rnd(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}
 const R=(a,b)=>a+rnd()*(b-a);
 let st='ready',P,pl,co,pt=[],cam,top,score,coins,shake=0,dieT=0,combo,comboT,held=false,T=0,revives=0,boost=false,inv=0,shield=false,prev='ready',rank=[],btns=[],adBusy=false,lastSub=null;
-const API='https://blobjump-api.zyzybots.workers.dev',ADSGRAM_BLOCK='',MONETAG_ZONE='';
+const API='https://blobjump-api.zyzybots.workers.dev',ADSGRAM_BLOCK='',MONETAG_ZONE='disabled';
 function reset(){seed=Date.now()&0xffffff;pl=[{x:W/2-55,y:600,w:110,k:0,s:null,br:0,dead:false}];co=[];pt=[];score=0;coins=0;shake=0;combo=0;comboT=0;top=600;revives=0;inv=0;shield=boost;boost=false;lastSub=null;
 P={x:W/2,y:586,vx:0,vy:-720,dir:1,sq:0};cam=P.y-H*.7;while(top>cam-300)gen()}
 function gen(){const d=Math.min(1,(600-top)/7000),w=R(88-d*30,106-d*34);top-=R(88,112+d*42);let k=0;const r=rnd();
