@@ -4,8 +4,6 @@
 <title>Blob Jump</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
-<!-- PEGA AQUI la etiqueta <script ... data-zone=... data-sdk=show_XXX> que te da Monetag -->
-<script src="https://libtl.com/sdk.js" data-zone="11979223" data-sdk="show_11979223"></script>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#dfe6f2}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b1020}}
@@ -36,7 +34,7 @@ function rnd(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|s
 const R=(a,b)=>a+rnd()*(b-a);
 let st='ready',P,pl,co,pt=[],cam,top,score,coins,shake=0,dieT=0,combo,comboT,held=false,T=0,revives=0,boost=false,inv=0,shield=false,shieldUsed=false,prev='ready',rank=[],btns=[],adBusy=false,lastSub=null;
 // Tienda y misiones
-const API='https://blobjump-api.zyzybots.workers.dev',ADSGRAM_BLOCK='52792',MONETAG_ZONE='11979223';
+const API='https://blobjump-api.zyzybots.workers.dev',ADSGRAM_BLOCK='52792',MONETAG_ZONE='';
 // Inicializar tienda y misiones con valores predeterminados si no existen
 function initShop(){
     if(shopItems.length===0){
@@ -255,14 +253,14 @@ if(st=='ready')P.y=586-Math.abs(Math.sin(T*3.2))*70;
 if(st!='dead')blob();
 g.restore();cam=cs;
 if(st=='play'){tx(score+' m',16,44,34,'#fff',800,'left');tx(coins+' ●',W-16,42,22,'#ffd23f',700,'right');if(combo>1)tx('x'+combo,W-16,68,16,'#fff',700,'right')}
-if(st=='ready'){tx('BLOB JUMP',W/2,100,50,'#fff',800);
-tx('Toca: cambia de dirección',W/2,160,16,'#fff',400);
-tx('Mantén: rebote más alto',W/2,190,16,'#fff',400);
-tx('Evita los pinchos rojos',W/2,220,16,'#ff8a99',400);
-btn('JUGAR',W/2-100,260,200,50,()=>{reset();st='play';held=true;snd(440,.08,'triangle');},'#2d8f6a');
-btn('Ranking',W/2-100,320,200,40,openRank,'#3a4a82');
-btn('Tienda',W/2-100,370,200,40,openShop,'#3a4a82');
-btn('Misiones',W/2+100,320,200,40,openMissions,'#3a4a82');
+if(st=='ready'){tx('BLOB JUMP',W/2,150,46,'#fff',800);
+tx('Toca: cambia de dirección',W/2,260,16,'#fff',400);
+tx('Mantén: rebote más alto',W/2,284,16,'#fff',400);
+tx('Evita los pinchos rojos',W/2,308,16,'#ff8a99',400);
+btn('JUGAR',W/2-100,200,200,50,()=>{reset();st='play';held=true;snd(440,.08,'triangle');},'#2d8f6a');
+btn('Ranking',W/2-60,396,120,40,openRank,'#3a4a82');
+btn('Tienda',W/2-160,420,150,40,openShop,'#3a4a82');
+btn('Misiones',W/2+10,420,150,40,openMissions,'#3a4a82');
 btn('Escudo inicial (ver anuncio)',W/2+100,370,200,40,()=>{if(!boost)ad(ok=>{if(ok)boost=true})},boost?'#6df0b0':'#3a4a82');
 if(best)tx('Récord '+best+' m',W/2,420,16,'#bcd',600);}
 if(st=='dead'){g.fillStyle='rgba(8,12,24,.62)';g.fillRect(0,0,W,H);
